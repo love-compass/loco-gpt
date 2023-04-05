@@ -393,15 +393,10 @@ class LOCO:
         # parsed_result = [json.loads("{" + p.replace("Lunch at ", "").replace("Dinner at ", "") + "}") for p in parsed_result]
 
         # budget; str to int
-        prior_places = [] # ko
-
         for idx in range(len(parsed_result)):
-            prior_places.append(parsed_result[idx]["activity_name"])
             try:
                 parsed_result[idx]["budget"] = int(parsed_result[idx]["budget"])
             except:
                 parsed_result[idx]["budget"] = 0
-
-        print("prior_places: ", prior_places)
 
         return parsed_result
