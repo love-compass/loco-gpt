@@ -132,28 +132,61 @@ def init() -> None:
 def postprocessing(result: str) -> str:
     """
     [Exception 1] OUTPUT FORMAT:
-    ACTIVITY
+        ACTIVITY
 
-    1. ~
+        1. ~
+
+    [Exception 1-1] Variation 1
+        ACTIVITY
+
+        1. "Lotte World Tower Observation Deck"
+
+    [Exception 1-2] Variation 2
+        1. Breakfast at Bongchu Jjimdak (봉추찜닭) in Jamsil
+        - "activity_name": "Bongchu Jjimdak (봉추찜닭)",
+
+    [Exception 1-3] Variation 3
+        ACTIVITY
+        1. "activity_name": "Seoul Sky Observatory",
+
 
     [Exception 2] UNINTENDED OUTPUT:
-    "budget": "39000"
+        "budget": "39000"
 
-    Total budget: 101000 Won <- THIS
+        Total budget: 101000 Won <- THIS
     """
-    exception_pattern_1 = re.compile(r'\d\. ' + '\"*[a-zA-Z| *|:|\"]*\"*')
+    exception_pattern_1 = re.compile(r'\d\. ' + '\"*[a-zA-Z| *|:|é|\"]*\"*')
 
+    # exception: 1-1
+    if "activity_name" not in result:
+        activity_findall = exception_pattern_1.findall(result)
+
+        for a in activity_findall:
+            result = re.sub(exception_pattern_1, 'ACTIVITY\n\"activity_name\": ' + a, result)
+            result = re.sub(r'\d\. ', "", result)
+
+    # exception: 1-2
+    if "ACTIVITY" not in result:
+        activity_findall = exception_pattern_1.findall(result)
+
+        for _ in activity_findall:
+            result = re.sub(exception_pattern_1, 'ACTIVITY\n', result)
+            result = re.sub(r'\d\. ', "", result)
+            result = re.sub(r'\([^)]*\) *[a-zA-Z| *|가-힣]*', "", result)
+
+    # exception: 1
     if exception_pattern_1.match(result):
         result = re.sub('\d. ' + '[a-zA-Z | *]*', 'ACTIVITY', result)
 
-        if "ACTIVITY\n\nACTIVITY" in result:
-            result = result.replace("ACTIVITY\n\nACTIVITY", "ACTIVITY")
+    if "ACTIVITY\n\nACTIVITY" in result:
+        result = result.replace("ACTIVITY\n\nACTIVITY", "ACTIVITY")
 
-        if "ACTIVITY\nACTIVITY" in result:
-            result = result.replace("ACTIVITY\nACTIVITY", "ACTIVITY")
+    if "ACTIVITY\nACTIVITY" in result:
+        result = result.replace("ACTIVITY\nACTIVITY", "ACTIVITY")
 
-        result = result.replace("- ", "")
+    result = result.replace("- ", "")
 
+    # exception: 2
     exception_pattern_2 = re.compile(r"\"budget\": \"[a-zA-Z0-9]*\"")
 
     findall_budget = exception_pattern_2.findall(result)
@@ -166,6 +199,10 @@ def postprocessing(result: str) -> str:
         return result
     else: # empty -> no error
         return result
+
+
+def remove_verb(p: str) -> str:
+    return p.replace("Lunch at ", "").replace("Dinner at ", "").replace("Breakfast at ", "").replace("Visit ", "").replace("Coffee at ", "").replace("Explore ", "")
 
 
 def change_route(meeting_time: str,
@@ -348,8 +385,11 @@ class LOCO:
         print(result)
         print("---------------------------------------------------")
 
+        # split paragraph
         parsed_result = result.replace("\n\n", "").replace("\n", "").split("ACTIVITY")[1:]
-        parsed_result = [json.loads("{" + translater(p.replace("Lunch at ", "").replace("Dinner at ", ""), task='en-ko') + "}") for p in parsed_result]
+
+        # remove verb from activity, translate en to ko, and json formatting
+        parsed_result = [json.loads("{" + translater(remove_verb(p), task='en-ko') + "}") for p in parsed_result]
         # parsed_result = [json.loads("{" + p.replace("Lunch at ", "").replace("Dinner at ", "") + "}") for p in parsed_result]
 
         # budget; str to int
@@ -365,25 +405,3 @@ class LOCO:
         print("prior_places: ", prior_places)
 
         return parsed_result
-
-
-def main():
-    # input
-    """example"""
-    start_time = "2023-04-09T11:00:00"
-    end_time = "2023-04-09T13:00:00"
-    place = "잠실/송파"
-    budget = 150000
-    user_request = "가격이 너무 비싸요"
-    prior_places = ['서울올림픽미술관', '꼬꼬춘천치킨', '코엑스 아쿠아리움', '스타필드 코엑스몰']
-    # prior_places = []
-
-    loco = LOCO()
-    result = loco.inference(start_time, end_time, place, budget, user_request, prior_places)
-
-    for r in result:
-        print(r)
-
-
-if __name__ == "__main__":
-    main()
