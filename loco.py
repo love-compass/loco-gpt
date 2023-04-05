@@ -1,15 +1,12 @@
+import os
 import re
 import json
-from typing import List
+from typing import List, Dict
 import openai
 from google.cloud import translate
-from google.api_core.exceptions import AlreadyExists
 
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "assets/b7f9.json"
 openai.api_key = "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"
-
-LOCO_SUFFIX_PROMPT = """"""
-
-LOCO_ADDITIONAL_PROMPT = """It's the 100th day since I met my girlfriend. It's a very special day for us"""
 
 
 def place_en_to_ko(location: str) -> str:
@@ -51,140 +48,44 @@ def place_en_to_ko(location: str) -> str:
         return place_dict[location] + ", Seoul"
 
 
-def translate_en_to_ko(text, project_id="delta-coast-382412"):
+def translater(text: str, task: str, project_id="delta-coast-382412") -> str:
     client = translate.TranslationServiceClient()
+    location = "us-central1"
 
+    # 아까 지정한 용어집 이름과 같이 맞춰줘야 함
+    glossary = client.glossary_path(project_id, location, 'loco_translator_glossary')
+    glossary_config = translate.TranslateTextGlossaryConfig(glossary=glossary)
+    parent = f"projects/{project_id}/locations/{location}"
 
-def clean_text(result: str) -> str:
-    print("\n[Exception 1] preprocessing.")
-    result = re.sub('\d. ' + '[a-zA-Z | *]*', 'ACTIVITY', result)
+    # Translate text from English to Korean
+    if task == 'ko-en':
+        response = client.translate_text(
+            request={
+                "parent": parent,
+                "contents": [text],
+                "mime_type": "text/plain",  # mime types: text/plain, text/html
+                "source_language_code": "ko",
+                "target_language_code": "en-US",
+                "glossary_config": glossary_config,
+            }
+        )
 
-    if "ACTIVITY\n\nACTIVITY" in result:
-        result = result.replace("ACTIVITY\n\nACTIVITY", "ACTIVITY")
+        return response.glossary_translations[0].translated_text
+    elif task == 'en-ko':
+        response = client.translate_text(
+            request={
+                "parent": parent,
+                "contents": [text],
+                "mime_type": "text/plain",  # mime types: text/plain, text/html
+                "source_language_code": "en-US",
+                "target_language_code": "ko",
+                "glossary_config": glossary_config,
+            }
+        )
 
-    return result
-
-
-def generating_route(meeting_time, parting_time, budget, place):
-    LOCO_INSTRUCTION_RPOMPT = f"""Recommend a date course where meeting time is {meeting_time}, parting time is {parting_time}, budget is {budget}, and Meeting place is {place}.
-    
-    You should actively recommend names of place that exist in reality, what it actually costs, and describe about the location briefly.
-    
-    Output format: 
-    
-    ```
-    ACTIVITY
-    "activity_name": "Starbucks Yangjae Station Branch",
-    "start_time": "2023-04-09T13:00:00",
-    "end_time": "2023-04-09T15:00:00",
-    "description": "Starbucks is the world's largest multinational coffee chain.",
-    "budget": "10000"
-    ```
-    
-    "activity_name" should be a place only.
-    
-    You must follow the Output format, Begin!:
-    """
-
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user",
-                   "content": f"{LOCO_INSTRUCTION_RPOMPT}"}],
-        temperature=1.1,
-        max_tokens=2048,
-        top_p=0.9,
-        frequency_penalty=0.0,
-        presence_penalty=0.0
-    )
-
-    return response.choices[0].message.content
-
-
-def change_route(parsed_result: List[str], change_idx_list: List[int], place: str) -> List[str]:
-    for idx in range(len(parsed_result)):
-        # str to dict
-        parsed_result[idx] = "{" + parsed_result[idx] + "}"
-        parsed_result[idx] = json.loads(parsed_result[idx])
-
-        if idx in change_idx_list:
-            LOCO_CHANGE_PROMPT = f"""Recommend a date course where MEETING TIME is {parsed_result[idx]['start_time']}, PARTING TIME is {parsed_result[idx]['end_time']}, and Meeting place is {place}.
-                                 
-                                 You should actively recommend names of place that exist in reality, what it actually costs, and describe about the location briefly.
-                                 
-                                 MEETING TIME and PARTING TIME must be adhered to. 
-                                 
-                                 Output format: 
-                                 
-                                 ```
-                                 ACTIVITY
-                                 "activity_name": "Starbucks Yangjae Station Branch",
-                                 "start_time": "MEETING TIME",
-                                 "end_time": "PARTING TIME",
-                                 "description": "Starbucks is the world's largest multinational coffee chain.",
-                                 "budget": "10000"
-                                 ```
-                                 
-                                 "activity_name" should be a place only, meeting time and parting time are should be considered.
-                                 
-                                 You must follow the Output format, Begin!:
-                                 """
-
-            loco = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user",
-                           "content": f"{LOCO_CHANGE_PROMPT}"}],
-                temperature=1.1,
-                max_tokens=2048,
-                top_p=0.9,
-                frequency_penalty=0.0,
-                presence_penalty=0.0
-            )
-
-            parsed_result[idx] = loco.choices[0].message.content
-            # postprocessing
-            parsed_result[idx] = re.sub('  +', '', parsed_result[idx])
-            exception_pattern_1 = re.compile('\d. ' + '[a-zA-Z | *]*')
-
-            """Exception 1"""
-            if exception_pattern_1.match(parsed_result[idx]):
-                parsed_result[idx] = clean_text(parsed_result[idx])
-
-            """Exception 2"""
-            exception_pattern_2 = re.compile(r"\"budget\": \"[a-zA-Z0-9]*\"")
-
-            print("\n[Exception 2] preprocessing.")
-
-            findall_budget = exception_pattern_2.findall(parsed_result[idx])
-            chop_idx_from = parsed_result[idx].index(findall_budget[-1])
-            chop_idx_to = len(findall_budget[-1])
-            parsed_result[idx] = parsed_result[idx][:chop_idx_from + chop_idx_to]
-
-            parsed_result[idx] = parsed_result[idx].replace("\n\n", "").replace("\n", "").replace("```", "").split("ACTIVITY")[1:][0]
-            parsed_result[idx] = "{" + parsed_result[idx] + "}"
-            parsed_result[idx] = json.loads(parsed_result[idx])
-
-        # budget str -> int
-        try:
-            parsed_result[idx]["budget"] = int(parsed_result[idx]["budget"])
-        except:
-            parsed_result[idx]["budget"] = 0
-
-    return parsed_result
-
-
-def location_double_check(result):
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user",
-                   "content": f"Make sure the places you recommend in {result} match actual location:"}],
-        temperature=1.1,
-        max_tokens=2048,
-        top_p=0.9,
-        frequency_penalty=0.0,
-        presence_penalty=0.0
-    )
-
-    return response.choices[0].message.content
+        return response.glossary_translations[0].translated_text
+    else:
+        pass
 
 
 def init() -> None:
@@ -199,15 +100,136 @@ def init() -> None:
     You must not recommend physically impossible routes. For example, Human can not travel from Anam Station to Seoul Nat'l Univ. Station in 1 minutes. 
 
     You must not make recommendations beyond a given budget. For example, you shouldn't be recommending $10 spaghetti to your user if user's budget is only $5.
-
+    
     You must create a date path strictly according to our instructions.
 
     Do you understand this task is?:"""
 
-    init_loco = openai.ChatCompletion.create(
+    while True:
+        init_loco = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user",
+                       "content": f"{LOCO_PREFIX_RPOMPT}"}],
+            temperature=1.1,
+            max_tokens=2048,
+            top_p=0.9,
+            frequency_penalty=0.0,
+            presence_penalty=0.0
+        )
+
+        print("---------------------------------------------------")
+        print("\"Human\": Do you understand what this task is?")
+        print("\"AI\":", init_loco.choices[0].message.content)
+
+        if "yes" in init_loco.choices[0].message.content.lower():
+            print("\"Human\": Great, Let's begin!")
+            print("---------------------------------------------------")
+            break
+        else:
+            continue
+
+
+def postprocessing(result: str) -> str:
+    """
+    [Exception 1] OUTPUT FORMAT:
+    ACTIVITY
+
+    1. ~
+
+    [Exception 2] UNINTENDED OUTPUT:
+    "budget": "39000"
+
+    Total budget: 101000 Won <- THIS
+    """
+    exception_pattern_1 = re.compile(r'\d\. ' + '\"*[a-zA-Z| *|:|\"]*\"*')
+
+    if exception_pattern_1.match(result):
+        result = re.sub('\d. ' + '[a-zA-Z | *]*', 'ACTIVITY', result)
+
+        if "ACTIVITY\n\nACTIVITY" in result:
+            result = result.replace("ACTIVITY\n\nACTIVITY", "ACTIVITY")
+
+        if "ACTIVITY\nACTIVITY" in result:
+            result = result.replace("ACTIVITY\nACTIVITY", "ACTIVITY")
+
+        result = result.replace("- ", "")
+
+    exception_pattern_2 = re.compile(r"\"budget\": \"[a-zA-Z0-9]*\"")
+
+    findall_budget = exception_pattern_2.findall(result)
+
+    if findall_budget: # not empty
+        chop_idx_from = result.index(findall_budget[-1])
+        chop_idx_to = len(findall_budget[-1])
+        result = result[:chop_idx_from + chop_idx_to]
+
+        return result
+    else: # empty -> no error
+        return result
+
+
+def change_route(meeting_time: str,
+                 parting_time: str,
+                 budget: str,
+                 place: str,
+                 user_request: str,
+                 prior_places: List[str]) -> str:
+
+    m_year, m_time = meeting_time.split("T")
+    m_year = m_year.split('-')
+    meeting_time = m_time.strip() + ", " + m_year[0] + "/" + m_year[1] + "/" + m_year[2]
+
+    p_year, p_time = parting_time.split("T")
+    p_year = p_year.split('-')
+    parting_time = p_time.strip() + ", " + p_year[0] + "/" + p_year[1] + "/" + p_year[2]
+    print(f"time: from {meeting_time} to {parting_time}, budget: {budget}, place: {place}")
+    print("---------------------------------------------------")
+
+    USER_REQUEST_PROMPT = ""
+
+    # user_request: "가격이 너무 비싸요"
+    if user_request:
+        user_request = translater(user_request, task='ko-en')  # 'ko-en' or 'en-ko'
+        USER_REQUEST_PROMPT = f"You should consider this message: {user_request}. "
+
+    # prior_places: ['서울올림픽미술관', '꼬꼬춘천치킨', '코엑스 아쿠아리움', '스타필드 코엑스몰']
+    if prior_places:
+        temp_places = ""
+        for idx, pp in enumerate(prior_places):
+            if idx == len(prior_places) - 1:
+                temp_places += translater(pp, task="ko-en")
+            else:
+                temp_places = temp_places + translater(pp, task="ko-en") + ", "
+        USER_REQUEST_PROMPT += f"You must not include the following locations: {temp_places}"
+
+    print("USER_REQUEST_PROMPT: ", USER_REQUEST_PROMPT)
+
+    LOCO_INSTRUCTION_RPOMPT = f"""Plan a date from {meeting_time} to {parting_time}, budget is {budget}, and Meeting place is {place}.
+
+    You should actively recommend names of place that exist in reality, what it actually costs.
+
+    {USER_REQUEST_PROMPT}. You should recommend only one place and don't give me a choice.
+
+    OUTPUT FORMAT: 
+
+    ```
+    ACTIVITY
+    "activity_name": "Starbucks Yangjae Station Branch",
+    "start_time": "2023-04-09T13:00:00",
+    "end_time": "2023-04-09T15:00:00",
+    "description": "Starbucks is the world's largest multinational coffee chain.",
+    "budget": "10000"
+    ```
+    
+    "activity_name" should be a place only
+    """
+
+    LOCO_SUFFIX_PROMPT = """You must follow the OUTPUT FORMAT, Begin!:"""
+
+    response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user",
-                   "content": f"{LOCO_PREFIX_RPOMPT}"}],
+                   "content": f"{LOCO_INSTRUCTION_RPOMPT}. {LOCO_SUFFIX_PROMPT}"}],
         temperature=1.1,
         max_tokens=2048,
         top_p=0.9,
@@ -215,89 +237,153 @@ def init() -> None:
         presence_penalty=0.0
     )
 
+    result = response.choices[0].message.content
+
+    return result
+
+
+def generate_route(meeting_time: str,
+                   parting_time: str,
+                   budget: str,
+                   place: str) -> str:
+
+    m_year, m_time = meeting_time.split("T")
+    m_year = m_year.split('-')
+    meeting_time = m_time.strip() + ", " + m_year[0] + "/" + m_year[1] + "/" + m_year[2]
+
+    p_year, p_time = parting_time.split("T")
+    p_year = p_year.split('-')
+    parting_time = p_time.strip() + ", " + p_year[0] + "/" + p_year[1] + "/" + p_year[2]
+    print(f"time: from {meeting_time} to {parting_time}, budget: {budget}, place: {place}")
     print("---------------------------------------------------")
-    print("\"Human\": Do you understand what this task is?")
-    print("\"AI\":", init_loco.choices[0].message.content)
-    if "yes" in init_loco.choices[0].message.content.lower():
-        print("\"Human\": Great, Let's begin!")
+
+    # date time <= 2 hours -> recommend a place
+    SINGLE_PLACE_PROMPT = ""
+
+    if int(p_time.split(":")[0]) - int(m_time.split(":")[0]) <= 3:
+        SINGLE_PLACE_PROMPT = "If date time is less than 2 hours, you recommend only one place. Do not give me a choice."
+
+    LOCO_INSTRUCTION_RPOMPT = f"""Plan a date from {meeting_time} to {parting_time}, budget is {budget}, and Meeting place is {place}.
+
+    You should actively recommend names of place that exist in reality, what it actually costs. {SINGLE_PLACE_PROMPT}
+    
+    OUTPUT FORMAT: 
+
+    ```
+    ACTIVITY
+    "activity_name": "Starbucks Yangjae Station Branch",
+    "start_time": "2023-04-09T13:00:00",
+    "end_time": "2023-04-09T15:00:00",
+    "description": "Starbucks is the world's largest multinational coffee chain.",
+    "budget": "10000"
+    ```
+    
+    "activity_name" should be a place only
+    """
+
+    LOCO_SUFFIX_PROMPT = """You must follow the OUTPUT FORMAT, Begin!:"""
+
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user",
+                   "content": f"{LOCO_INSTRUCTION_RPOMPT}. {LOCO_SUFFIX_PROMPT}"}],
+        temperature=1.1,
+        max_tokens=2048,
+        top_p=0.9,
+        frequency_penalty=0.0,
+        presence_penalty=0.0
+    )
+
+    result = response.choices[0].message.content
+
+    return result
+
+
+class LOCO:
+    def __init__(self):
+        print("Initializing LOCO")
+        init()
+
+    def inference(self,
+                  meeting_time: str,
+                  parting_time: str,
+                  place: str,
+                  budget: int,
+                  user_request: str,
+                  prior_places: List[str]) -> List[Dict]:
+
+        # preprocessing
+        place = place_en_to_ko(place)
+        budget = str(budget) + " Won"
+
+        if prior_places: # user-requested try (not empty)
+            print("Change a meeting place")
+            print("---------------------------------------------------")
+            # change a meeting place
+            result = change_route(meeting_time,
+                                  parting_time,
+                                  budget,
+                                  place,
+                                  user_request,
+                                  prior_places)
+        else: # first try
+            # generate schedule
+            print("Generate Routes")
+            result = generate_route(meeting_time,
+                                    parting_time,
+                                    budget,
+                                    place)
+
+        print(result)
         print("---------------------------------------------------")
-    else:
-        exit(1)
+        # remove multiple spaces
+        result = re.sub('  +', '', result)
+
+        # main postprocessing
+        result = postprocessing(result)
+
+        # e.g., ACTIVITY 1 -> ACTIVITY
+        result = re.sub(r'ACTIVITY ' + '[0-9]+', 'ACTIVITY', result)
+
+        print(result)
+        print("---------------------------------------------------")
+
+        parsed_result = result.replace("\n\n", "").replace("\n", "").split("ACTIVITY")[1:]
+        parsed_result = [json.loads("{" + translater(p.replace("Lunch at ", "").replace("Dinner at ", ""), task='en-ko') + "}") for p in parsed_result]
+        # parsed_result = [json.loads("{" + p.replace("Lunch at ", "").replace("Dinner at ", "") + "}") for p in parsed_result]
+
+        # budget; str to int
+        prior_places = [] # ko
+
+        for idx in range(len(parsed_result)):
+            prior_places.append(parsed_result[idx]["activity_name"])
+            try:
+                parsed_result[idx]["budget"] = int(parsed_result[idx]["budget"])
+            except:
+                parsed_result[idx]["budget"] = 0
+
+        print("prior_places: ", prior_places)
+
+        return parsed_result
 
 
 def main():
-    init()
-
     # input
     """example"""
-    meeting_time = "2023-04-09T09:00:00"
-    parting_time = "2023-04-09T18:00:00"
+    start_time = "2023-04-09T11:00:00"
+    end_time = "2023-04-09T13:00:00"
     place = "잠실/송파"
-    budget = "100000"
+    budget = 150000
+    user_request = "가격이 너무 비싸요"
+    prior_places = ['서울올림픽미술관', '꼬꼬춘천치킨', '코엑스 아쿠아리움', '스타필드 코엑스몰']
+    # prior_places = []
 
-    # preprocessing
-    place = place_en_to_ko(place)
-    budget += " Won"
+    loco = LOCO()
+    result = loco.inference(start_time, end_time, place, budget, user_request, prior_places)
 
-    # generate schedule
-    result = generating_route(meeting_time,
-                              parting_time,
-                              budget,
-                              place)
+    for r in result:
+        print(r)
 
-    # postprocessing
-    # remove multiple spaces
-    result = re.sub('  +', '', result)
-    print(result)
-    print("---------------------------------------------------")
-
-    """[Exception 1] OUTPUT FORMAT:
-    ACTIVITY
-
-    1. ~
-    """
-    exception_pattern_1 = re.compile('\d. ' + '[a-zA-Z | *]*')
-
-    if exception_pattern_1.match(result):
-        result = clean_text(result)
-
-    """[Exception 2] UNINTENDED OUTPUT: 
-    "budget": "39000"
-
-    Total budget: 101000 Won <- THIS
-    """
-    exception_pattern_2 = re.compile(r"\"budget\": \"[a-zA-Z0-9]*\"")
-
-    print("\n[Exception 2] preprocessing.")
-
-    findall_budget = exception_pattern_2.findall(result)
-    chop_idx_from = result.index(findall_budget[-1])
-    chop_idx_to = len(findall_budget[-1])
-    result = result[:chop_idx_from + chop_idx_to]
-    print(result)
-
-    print("---------------------------------------------------")
-
-    # change activity
-    """example"""
-    change_idx_list = [0, 1]
-
-    if change_idx_list: # not empty
-        parsed_result = result.replace("\n\n", "").replace("\n", "").split("ACTIVITY")[1:]
-        print("parsed_result: ", parsed_result)
-
-        parsed_result = change_route(parsed_result, change_idx_list, place)
-
-        for p in parsed_result:
-            print(p)
-
-        """translation"""
-
-
-    print("------------------------------------------")
-
-
-    # double check
 
 if __name__ == "__main__":
     main()
