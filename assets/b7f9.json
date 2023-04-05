@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "delta-coast-382412",
+  "private_key_id": "5347a899b7f9f2c5176962e4883a9b61ef2f235e",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCMxzJIVyXR69SM\nfeWzprd51vDzQlSXlE7CYrpPrZXXnCARZjQCRmMKgrC/aCd5pllhLJPVCbZK4cVN\njrPZa37E2YyMh5vYQenhXPlGQNiGSHGT7D2SBlFEo6hh+enkufczWtcktGvrw9sv\nfZyz1HW6IJuK7VnHms8Yg+rrxHqAEwMu4r2DZHL5nLLRxKHAkOqgN43w4h3pvqDC\ng4imZ6t19EKZlDbCj6eCSFu9ME+AyFzXL7j7K7qPmzejJ1cKhLquNZwjFMYH0WYJ\npDOY3Lvz03rfnD7IQq/fLQ5SxgEB73La3uuvJnrKOKh4RidLIGZ1bRGGzYWZ6/xe\niiHb3PDlAgMBAAECggEAQZPO+/zAjNt23OUOmdOo9zQldKOq5Rs8Xvd/g3tAaDn9\nhC1gP8kK/MvpSphZfyT60LXjvWLzTEmET78QT1DwMgGHI7VN5vy5VnYpVk0Br/fS\nFI6BFeMkez1jRBSXHCl2mjEQNDRpa1+GXEZ+txRarNPgsOQkpMMcAnb8+UvCpqLD\nwWjaMKsAU5HlS1ntaumZJbw0MH2kHIswWbYl6bcKmk80v2RsQDDMAY9u0oq+hEZG\nF8wN/di1henuUomICLxSdiYn5zOkCXM421dpyb8TfBuzWTQf3ZTtevLn5zBD7RHJ\nO3IJR2X7MvBJOQwD5t4D10YgsGKdYuZ4EgGk/Gg51wKBgQDAKp6uDlsFduYL+ck4\nmp9TlsoLnAHNNyfsa7KnWIkJYPQr6gwffNjsEM5gq4PHTB0rs3hTrP6bmtNUieq4\n9Xkv2oIUvXh5bcOyqDhptL4VQtSP056uiRTdKNONF/4sFEEHk4NIG5a8saqFQrXx\nh25x5nPSioQ4/fKE2QgGSX+85wKBgQC7iqG4+v24tTsPxU0gT+rwkB5e3f/Ezq+z\n7MRyiA23NOWH6msImLfkV1BcGV8S3ra8YLMQ+wTJiQBAz+wy7b4yLLA4Z9uGUsYQ\nZ98bPiLb2KD4ag95e3o5TYfOouhO6TshlpmF2qtUlJuafM0eip6EBoGq52l4+SPI\n+9PM459+UwKBgFPPgst4+VvFwomAlLE6RrjnMBGmJecB4kirpAx2gbX0cing9w6Y\nnec/YTMqOtwmJybTLGyaK6Vj/j2FtTib3xHu5AL1q+CR7eMymQAJU0nkjt53tmJ6\n6P2X+8Qyrak94CrUvFIrri938V4TfVTs80976hHuVcKhhy9HlMdhMPQLAoGACkgi\nb6rLCDpfX5D4loHrJn8wOxE+uYJ/XYTojELrRZUP1HDEp3b/9fPXgwUdEkLFj/RZ\nPOAWNhpdui/sCirAl62dh6oh/e5Bz5pyP+MbNCRfRt9Bs+5SGBwpCuohhFoDFOdV\nyWHgrMVs9n5LHJaK9EALEdyYCrrV/GnaBcyg7OMCgYAS06pNqU2B5yuU/FrxSc29\nODflkF1yFACa8zhYWiQcb8XFHxCUhu9OltEqFPKTcLIJfOl2jgM+Mb1JHlGQ58yI\nuU0beU4NCjAWFE8HwpqRYrreQUtYkJtNlQljiQNDUPBAhjTGlqaLCSEwgZVKjxgS\nf+6+Q+FII8C8qnKUxZTQcQ==\n-----END PRIVATE KEY-----\n",
+  "client_email": "loco-translator@delta-coast-382412.iam.gserviceaccount.com",
+  "client_id": "109476360279206222560",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/loco-translator%40delta-coast-382412.iam.gserviceaccount.com"
+}
