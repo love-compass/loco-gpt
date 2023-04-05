@@ -297,7 +297,7 @@ def generate_route(meeting_time: str,
     # date time <= 2 hours -> recommend a place
     SINGLE_PLACE_PROMPT = ""
 
-    if int(p_time.split(":")[0]) - int(m_time.split(":")[0]) <= 3:
+    if int(p_time.split(":")[0]) - int(m_time.split(":")[0]) <= 2:
         SINGLE_PLACE_PROMPT = "If date time is less than 2 hours, you recommend only one place. Do not give me a choice."
 
     LOCO_INSTRUCTION_RPOMPT = f"""Plan a date from {meeting_time} to {parting_time}, budget is {budget}, and Meeting place is {place}.
