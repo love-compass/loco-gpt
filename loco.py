@@ -164,7 +164,8 @@ def postprocessing(result: str) -> str:
     activity_findall = re.compile(r'\d\. .*').findall(result)
 
     for a in activity_findall:
-        result = re.sub(a, '\nACTIVITY', result)
+        if "activity_name" not in a:
+            result = re.sub(a, '\nACTIVITY', result)
 
     # exception: 1-3
     if "ACTIVITY\n1. \"activity_name\"" in result:
@@ -225,8 +226,10 @@ def remove_verb(p: str) -> str:
     p = p.replace("Explore ", "")
     p = p.replace("Virtual Reality Experience at ", "")
     p = p.replace("Brunch at ", "")
+    p = p.replace("Tea time at ", "")
 
     return p
+
 
 def change_route(meeting_time: str,
                  parting_time: str,
