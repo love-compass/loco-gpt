@@ -426,26 +426,3 @@ class LOCO:
                 parsed_result[idx]["budget"] = 0
 
         return parsed_result
-
-
-def main():
-    # input
-    """example"""
-    start_time = "2023-04-09T11:00:00"
-    end_time = "2023-04-09T19:00:00"
-    place = '개포/일원/수서'
-    budget = 100000
-    user_request = "산책하고 싶어요"
-    # prior_places = ['서울올림픽미술관', '꼬꼬춘천치킨', '코엑스 아쿠아리움', '스타필드 코엑스몰']
-    prior_places = []
-
-    # result: List[Dict]
-    loco = LOCO()
-    result = loco.inference(start_time, end_time, place, budget, user_request, prior_places)
-
-    for r in result:
-        print(r)
-
-
-if __name__ == "__main__":
-    main()
