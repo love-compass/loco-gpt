@@ -237,6 +237,7 @@ def remove_verb(p: str) -> str:
     p = p.replace("Coffee and Cake at ", "")
     p = p.replace("Coffee and dessert at ", "")
     p = p.replace("Visiting ", "")
+    p = p.replace("Walk in ", "")
 
     return p
 
@@ -439,28 +440,3 @@ class LOCO:
                 parsed_result[idx]["budget"] = 0
 
         return parsed_result
-
-
-def main():
-    # input
-    """example"""
-    start_time = "2023-04-09T11:00:00"
-    end_time = "2023-04-09T19:00:00"
-    # place = '개포/일원/수서'
-    budget = 100000
-    user_request = "산책하고 싶어요"
-    # prior_places = ['서울올림픽미술관', '꼬꼬춘천치킨', '코엑스 아쿠아리움', '스타필드 코엑스몰']
-    prior_places = []
-
-    # result: List[Dict]
-    for place in ['강남/역삼/선릉', '강남구청', '개포/일원/수서', '건대/군자/구의', '금호/옥수', '명동/을지로/충무로', '방이', '북촌/삼청', '삼성/대치', '상수/합정/망원', '서울역/회현', '서초/방배', '서촌', '선릉/삼성', '성수/뚝섬', '신사/논현', '신촌/홍대/서교', '압구정/청담', '양재/도곡', '연남', '영동포/여의도', '용산/삼각지', '이태원/한남', '잠실/송파', '종로/광화문', '분당', '수원/광교', '판교']:
-        loco = LOCO()
-        result = loco.inference(start_time, end_time, place, budget, user_request, prior_places)
-
-        for r in result:
-            print(r)
-        print(" ")
-
-
-if __name__ == "__main__":
-    main()
