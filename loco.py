@@ -222,7 +222,9 @@ def remove_verb(p: str) -> str:
     p = p.replace("Dinner at ", "")
     p = p.replace("Breakfast at ", "")
     p = p.replace("Visit ", "")
+    p = p.replace("Visit to ", "")
     p = p.replace("Coffee at ", "")
+    p = p.replace("Picnic at ", "")
     p = p.replace("Explore ", "")
     p = p.replace("Virtual Reality Experience at ", "")
     p = p.replace("Brunch at ", "")
@@ -408,8 +410,8 @@ class LOCO:
         # e.g., ACTIVITY 1 -> ACTIVITY
         result = re.sub(r'ACTIVITY ' + '[0-9]+', 'ACTIVITY', result)
 
-        # e.g., ACTIVITY 1: -> ACTIVITY
-        result = re.sub(r'ACTIVITY ' + '[0-9]+:', 'ACTIVITY', result)
+        # e.g., ACTIVITY 1: OR ACTIVITY1: OR ACTIVITY: OR ACTIVITY : -> ACTIVITY
+        result = re.sub(r'ACTIVITY' + '[0-9| ]*:', 'ACTIVITY', result)
 
         print(result)
         print("---------------------------------------------------")
