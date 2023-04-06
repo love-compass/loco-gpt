@@ -136,18 +136,22 @@ def postprocessing(result: str) -> str:
 
         1. ~
 
-    [Exception 1-1] Variation 1
+    [Exception 1-1] "activity_name" not in result
         ACTIVITY
 
         1. "Lotte World Tower Observation Deck"
 
-    [Exception 1-2] Variation 2
+    [Exception 1-2] "ACTIVITY" not in result
         1. Breakfast at Bongchu Jjimdak (봉추찜닭) in Jamsil
         - "activity_name": "Bongchu Jjimdak (봉추찜닭)",
 
-    [Exception 1-3] Variation 3
+    [Exception 1-3] Variation 1-3
         ACTIVITY
         1. "activity_name": "Seoul Sky Observatory",
+
+    [Exception 1-4] Variation 1-4
+        ACTIVITY
+        1. "Breakfast at Paul Bassett"
 
 
     [Exception 2] UNINTENDED OUTPUT:
@@ -155,6 +159,13 @@ def postprocessing(result: str) -> str:
 
         Total budget: 101000 Won <- THIS
     """
+
+    # exception: 1-4
+    activity_findall = re.compile(r'\d\. .*').findall(result)
+
+    for a in activity_findall:
+        result = re.sub(a, '\nACTIVITY', result)
+
     # exception: 1-3
     if "ACTIVITY\n1. \"activity_name\"" in result:
         result = re.sub(r'\d\. ', 'ACTIVITY\n', result)
@@ -422,7 +433,7 @@ def main():
     """example"""
     start_time = "2023-04-09T11:00:00"
     end_time = "2023-04-09T19:00:00"
-    place = '강남/역삼/선릉'
+    place = '개포/일원/수서'
     budget = 100000
     user_request = "산책하고 싶어요"
     # prior_places = ['서울올림픽미술관', '꼬꼬춘천치킨', '코엑스 아쿠아리움', '스타필드 코엑스몰']
