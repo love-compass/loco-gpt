@@ -155,6 +155,10 @@ def postprocessing(result: str) -> str:
 
         Total budget: 101000 Won <- THIS
     """
+    # exception: 1-3
+    if "ACTIVITY\n1. \"activity_name\"" in result:
+        result = re.sub(r'\d\. ', 'ACTIVITY\n', result)
+
     exception_pattern_1 = re.compile(r'\d\. ' + '\"*[a-zA-Z| *|:|é|\"]*\"*')
 
     # exception: 1-1
@@ -176,7 +180,7 @@ def postprocessing(result: str) -> str:
 
     # exception: 1
     if exception_pattern_1.match(result):
-        result = re.sub('\d. ' + '[a-zA-Z | *]*', 'ACTIVITY', result)
+        result = re.sub('\d\. ' + '[a-zA-Z | *]*', 'ACTIVITY', result)
 
     if "ACTIVITY\n\nACTIVITY" in result:
         result = result.replace("ACTIVITY\n\nACTIVITY", "ACTIVITY")
@@ -192,7 +196,7 @@ def postprocessing(result: str) -> str:
     findall_budget = exception_pattern_2.findall(result)
 
     if findall_budget: # not empty
-        chop_idx_from = result.index(findall_budget[-1])
+        chop_idx_from = result.rfind(findall_budget[-1])
         chop_idx_to = len(findall_budget[-1])
         result = result[:chop_idx_from + chop_idx_to]
 
@@ -202,8 +206,16 @@ def postprocessing(result: str) -> str:
 
 
 def remove_verb(p: str) -> str:
-    return p.replace("Lunch at ", "").replace("Dinner at ", "").replace("Breakfast at ", "").replace("Visit ", "").replace("Coffee at ", "").replace("Explore ", "")
+    p = p.replace("Lunch at ", "")
+    p = p.replace("Dinner at ", "")
+    p = p.replace("Breakfast at ", "")
+    p = p.replace("Visit ", "")
+    p = p.replace("Coffee at ", "")
+    p = p.replace("Explore ", "")
+    p = p.replace("Virtual Reality Experience at ", "")
+    p = p.replace("Brunch at ", "")
 
+    return p
 
 def change_route(meeting_time: str,
                  parting_time: str,
@@ -297,7 +309,7 @@ def generate_route(meeting_time: str,
     # date time <= 2 hours -> recommend a place
     SINGLE_PLACE_PROMPT = ""
 
-    if int(p_time.split(":")[0]) - int(m_time.split(":")[0]) <= 2:
+    if int(p_time.split(":")[0]) - int(m_time.split(":")[0]) <= 3:
         SINGLE_PLACE_PROMPT = "If date time is less than 2 hours, you recommend only one place. Do not give me a choice."
 
     LOCO_INSTRUCTION_RPOMPT = f"""Plan a date from {meeting_time} to {parting_time}, budget is {budget}, and Meeting place is {place}.
@@ -382,6 +394,9 @@ class LOCO:
         # e.g., ACTIVITY 1 -> ACTIVITY
         result = re.sub(r'ACTIVITY ' + '[0-9]+', 'ACTIVITY', result)
 
+        # e.g., ACTIVITY 1: -> ACTIVITY
+        result = re.sub(r'ACTIVITY ' + '[0-9]+:', 'ACTIVITY', result)
+
         print(result)
         print("---------------------------------------------------")
 
@@ -400,3 +415,26 @@ class LOCO:
                 parsed_result[idx]["budget"] = 0
 
         return parsed_result
+
+
+def main():
+    # input
+    """example"""
+    start_time = "2023-04-09T11:00:00"
+    end_time = "2023-04-09T19:00:00"
+    place = '강남/역삼/선릉'
+    budget = 100000
+    user_request = "산책하고 싶어요"
+    # prior_places = ['서울올림픽미술관', '꼬꼬춘천치킨', '코엑스 아쿠아리움', '스타필드 코엑스몰']
+    prior_places = []
+
+    # result: List[Dict]
+    loco = LOCO()
+    result = loco.inference(start_time, end_time, place, budget, user_request, prior_places)
+
+    for r in result:
+        print(r)
+
+
+if __name__ == "__main__":
+    main()
