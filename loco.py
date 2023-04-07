@@ -48,7 +48,7 @@ def place_en_to_ko(location: str) -> str:
         return place_dict[location] + ", Seoul"
 
 
-def translater(text: str, task: str, project_id="delta-coast-382412") -> str:
+def translator(text: str, task: str, project_id="delta-coast-382412") -> str:
     client = translate.TranslationServiceClient()
     location = "us-central1"
 
@@ -86,6 +86,38 @@ def translater(text: str, task: str, project_id="delta-coast-382412") -> str:
         return response.glossary_translations[0].translated_text
     else:
         pass
+
+def translator_chatgpt(text: str, task: str) -> str:
+    TRANSLATION_TASK_PROMPT = ""
+
+    if task == 'ko-en':
+        TRANSLATION_TASK_PROMPT = f"Translate {text} into English."
+    elif task == 'en-ko':
+        TRANSLATION_TASK_PROMPT = f"Translate {text} into Korean."
+    else:
+        pass
+
+    LOCO_TRANSLATION_PROMPT = f"""{TRANSLATION_TASK_PROMPT}
+    
+    You should not translate the following words: ACTIVITY, "activity_name", "start_time", "end_time", "description", "budget".
+    
+    Begin!: 
+    """
+
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user",
+                   "content": f"{LOCO_TRANSLATION_PROMPT}."}],
+        temperature=1.1,
+        max_tokens=2048,
+        top_p=0.9,
+        frequency_penalty=0.0,
+        presence_penalty=0.0
+    )
+
+    result = response.choices[0].message.content
+
+    return result
 
 
 def init() -> None:
@@ -200,6 +232,9 @@ def postprocessing(result: str) -> str:
     if "ACTIVITY\nACTIVITY" in result:
         result = result.replace("ACTIVITY\nACTIVITY", "ACTIVITY")
 
+    if "\n\nACTIVITY" in result:
+        result = result.replace("\n\nACTIVITY", "\nACTIVITY")
+
     result = result.replace("- ", "")
 
     # exception: 2
@@ -218,26 +253,36 @@ def postprocessing(result: str) -> str:
 
 
 def remove_verb(p: str) -> str:
-    p = p.replace("Lunch at ", "")
-    p = p.replace("Dinner at ", "")
+    p = p.replace("Artistic exploration at ", "")
     p = p.replace("Breakfast at ", "")
-    p = p.replace("Visit ", "")
-    p = p.replace("Visit to ", "")
-    p = p.replace("Coffee at ", "")
-    p = p.replace("Picnic at ", "")
-    p = p.replace("Explore ", "")
-    p = p.replace("Virtual Reality Experience at ", "")
     p = p.replace("Brunch at ", "")
-    p = p.replace("Tea time at ", "")
-    p = p.replace("Karaoke at ", "")
-    p = p.replace("Shopping at ", "")
-    p = p.replace("Stroll around ", "")
-    p = p.replace("Riding the Cable Car at ", "")
-    p = p.replace("Relax at ", "")
+    p = p.replace("Coffee at ", "")
     p = p.replace("Coffee and Cake at ", "")
     p = p.replace("Coffee and dessert at ", "")
+    p = p.replace("Coffee break at ", "")
+    p = p.replace("Dinner at ", "")
+    p = p.replace("Explore ", "")
+    p = p.replace("Go to ", "")
+    p = p.replace("Hiking at ","")
+    p = p.replace("Karaoke at ", "")
+    p = p.replace("Lunch at ", "")
+    p = p.replace("Night view at ", "")
+    p = p.replace("Night view of ", "")
+    p = p.replace("Picnic at ", "")
+    p = p.replace("Riding the Cable Car at ", "")
+    p = p.replace("Relax at ", "")
+    p = p.replace("Shopping at ", "")
+    p = p.replace("Shopping in ", "")
+    p = p.replace("Stroll around ", "")
+    p = p.replace("Tea time at ", "")
+    p = p.replace("Visit ", "")
+    p = p.replace("Visit to ", "")
     p = p.replace("Visiting ", "")
+    p = p.replace("Virtual Reality Experience at ", "")
+    p = p.replace("Walking tour of ", "")
+    p = p.replace("Walking tour in ", "")
     p = p.replace("Walk in ", "")
+    p = p.replace("Walk around ", "")
 
     return p
 
@@ -263,7 +308,7 @@ def change_route(meeting_time: str,
 
     # user_request: "가격이 너무 비싸요"
     if user_request:
-        user_request = translater(user_request, task='ko-en')  # 'ko-en' or 'en-ko'
+        user_request = translator(user_request, task='ko-en')  # 'ko-en' or 'en-ko'
         USER_REQUEST_PROMPT = f"You should consider this message: {user_request}. "
 
     # prior_places: ['서울올림픽미술관', '꼬꼬춘천치킨', '코엑스 아쿠아리움', '스타필드 코엑스몰']
@@ -271,9 +316,9 @@ def change_route(meeting_time: str,
         temp_places = ""
         for idx, pp in enumerate(prior_places):
             if idx == len(prior_places) - 1:
-                temp_places += translater(pp, task="ko-en")
+                temp_places += translator(pp, task="ko-en")
             else:
-                temp_places = temp_places + translater(pp, task="ko-en") + ", "
+                temp_places = temp_places + translator(pp, task="ko-en") + ", "
         USER_REQUEST_PROMPT += f"You must not include the following locations: {temp_places}"
 
     print("USER_REQUEST_PROMPT: ", USER_REQUEST_PROMPT)
@@ -295,7 +340,7 @@ def change_route(meeting_time: str,
     "budget": "10000"
     ```
     
-    "activity_name" should be a place only
+    "activity_name" should be a place only and "description" should consist of one sentence
     """
 
     LOCO_SUFFIX_PROMPT = """You must follow the OUTPUT FORMAT, Begin!:"""
@@ -319,7 +364,8 @@ def change_route(meeting_time: str,
 def generate_route(meeting_time: str,
                    parting_time: str,
                    budget: str,
-                   place: str) -> str:
+                   place: str,
+                   user_request: str) -> str:
 
     m_year, m_time = meeting_time.split("T")
     m_year = m_year.split('-')
@@ -330,6 +376,13 @@ def generate_route(meeting_time: str,
     parting_time = p_time.strip() + ", " + p_year[0] + "/" + p_year[1] + "/" + p_year[2]
     print(f"time: from {meeting_time} to {parting_time}, budget: {budget}, place: {place}")
     print("---------------------------------------------------")
+
+    USER_REQUEST_PROMPT = ""
+
+    # user_request: "가격이 너무 비싸요"
+    if user_request:
+        user_request = translator(user_request, task='ko-en')  # 'ko-en' or 'en-ko'
+        USER_REQUEST_PROMPT = f"You should consider this message: {user_request}. "
 
     # date time <= 2 hours -> recommend a place
     SINGLE_PLACE_PROMPT = ""
@@ -352,7 +405,7 @@ def generate_route(meeting_time: str,
     "budget": "10000"
     ```
     
-    "activity_name" should be a place only
+    "activity_name" should be a place only, "budget" should be only numbers and "description" should consist of one sentence
     """
 
     LOCO_SUFFIX_PROMPT = """You must follow the OUTPUT FORMAT, Begin!:"""
@@ -376,7 +429,7 @@ def generate_route(meeting_time: str,
 class LOCO:
     def __init__(self):
         print("Initializing LOCO")
-        init()
+        # init()
 
     def inference(self,
                   meeting_time: str,
@@ -406,7 +459,8 @@ class LOCO:
             result = generate_route(meeting_time,
                                     parting_time,
                                     budget,
-                                    place)
+                                    place,
+                                    user_request)
 
         print(result)
         print("---------------------------------------------------")
@@ -422,6 +476,19 @@ class LOCO:
         # e.g., ACTIVITY 1: OR ACTIVITY1: OR ACTIVITY: OR ACTIVITY : -> ACTIVITY
         result = re.sub(r'ACTIVITY' + '[0-9| ]*:', 'ACTIVITY', result)
 
+        # remove (SOMETHING)
+        result = re.sub(re.compile(r'\([^)]*\) *'), "", result)
+
+        # remove #
+        # e.g., "budget": "0" # free admission -> "budget": "0"
+        result = re.sub(re.compile(r'# *.*'), "", result)
+
+        # remove . , -gu, -dong, and high-quality (json issue)
+        result = result.replace(".", "")
+        result = result.replace("high-quality", "high quality")
+        result = result.replace("-gu", " gu")
+        result = result.replace("-dong", " dong")
+
         print(result)
         print("---------------------------------------------------")
 
@@ -429,7 +496,7 @@ class LOCO:
         parsed_result = result.replace("\n\n", "").replace("\n", "").split("ACTIVITY")[1:]
 
         # remove verb from activity, translate en to ko, and json formatting
-        parsed_result = [json.loads("{" + translater(remove_verb(p), task='en-ko') + "}") for p in parsed_result]
+        parsed_result = [json.loads("{" + translator(remove_verb(p), task='en-ko') + "}") for p in parsed_result]
         # parsed_result = [json.loads("{" + p.replace("Lunch at ", "").replace("Dinner at ", "") + "}") for p in parsed_result]
 
         # budget; str to int
@@ -440,3 +507,4 @@ class LOCO:
                 parsed_result[idx]["budget"] = 0
 
         return parsed_result
+
