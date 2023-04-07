@@ -224,7 +224,19 @@ def postprocessing(result: str) -> str:
     findall_between = exception_pattern_3.findall(result)
 
     if findall_between:
-        result = re.sub(exception_pattern_3, "\nACTIVITY", result)
+        for f in findall_between:
+            if "\"activity_name\"" in f:
+                continue
+            result = result.replace(f, "")
+
+    # exception: 1-5
+    if result.count('ACTIVITY') == 1:
+        if "1. " in result:
+            pattern = re.compile(r'\d\. ')
+            result = re.sub(pattern, "", result)
+            result = result.replace("\"activity_name\"", "ACTIVITY\n\"activity_name\"")
+        else:
+            result = result.replace("\"activity_name\"", "ACTIVITY\n\"activity_name\"")
 
     # exception: 1-4
     activity_findall = re.compile(r'\d\. .*').findall(result)
@@ -259,10 +271,6 @@ def postprocessing(result: str) -> str:
     # exception: 1
     if exception_pattern_1.match(result):
         result = re.sub('\d\. ' + '[a-zA-Z | *]*', 'ACTIVITY', result)
-
-    # exception: 1-5
-    if result.count('ACTIVITY') == 1:
-        result = result.replace("\"activity_name\"", "ACTIVITY\n\"activity_name\"")
 
     if "ACTIVITY\n\nACTIVITY" in result:
         result = result.replace("ACTIVITY\n\nACTIVITY", "ACTIVITY")
