@@ -203,9 +203,23 @@ def postprocessing(result: str) -> str:
         "budget": "39000"
 
         Total budget: 101000 Won <- THIS
+
+    [Exception 3] UNINTENDED OUTPUT between activities
+        "budget": "0"
+
+        To end the day, we can grab some coffee and dessert at Starbucks Yangjae Station Branch. It's a cozy place to chat and relax after a long day. <- THIS
+
+        "activity_name": "Starbucks Yangjae Station Branch",
     """
     # remove multiple spaces
     result = re.sub('  +', '', result)
+
+    # exception: 3
+    exception_pattern_3 = re.compile(r'\n\n.+\n')
+    findall_between = exception_pattern_3.findall(result)
+
+    if findall_between:
+        result = re.sub(exception_pattern_3, "\nACTIVITY", result)
 
     # exception: 1-4
     activity_findall = re.compile(r'\d\. .*').findall(result)
