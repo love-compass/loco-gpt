@@ -392,7 +392,9 @@ def generate_route(meeting_time: str,
 
     LOCO_INSTRUCTION_RPOMPT = f"""Plan a date from {meeting_time} to {parting_time}, budget is {budget}, and Meeting place is {place}.
 
-    You should actively recommend names of place that exist in reality, what it actually costs. {SINGLE_PLACE_PROMPT}
+    You should actively recommend names of place that exist in reality, what it actually costs. 
+    
+    {USER_REQUEST_PROMPT}. {SINGLE_PLACE_PROMPT}
     
     OUTPUT FORMAT: 
 
