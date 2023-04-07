@@ -254,6 +254,9 @@ def postprocessing(result: str) -> str:
     if "\n\n\nACTIVITY" in result:
         result = result.replace("\n\n\nACTIVITY", "\n\nACTIVITY")
 
+    if "ACTIVITY\n\nACTIVITY" in result:
+        result = result.replace("ACTIVITY\n\nACTIVITY", "ACTIVITY\n")
+
     result = result.replace("- ", "")
 
     # exception: 2
