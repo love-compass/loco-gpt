@@ -214,6 +214,11 @@ def postprocessing(result: str) -> str:
     # remove multiple spaces
     result = re.sub('  +', '', result)
 
+    pattern = """ACTIVITY
+
+    \"activity_name\""""
+    result = result.replace(pattern, "ACTIVITY\n\"activity_name\"")
+
     # exception: 3
     exception_pattern_3 = re.compile(r'\n\n.+\n')
     findall_between = exception_pattern_3.findall(result)
