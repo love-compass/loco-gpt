@@ -4,9 +4,12 @@ import json
 from typing import List, Dict
 import openai
 from google.cloud import translate
+from flask import jsonify
 
+# API Keys
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "assets/b7f9.json"
 openai.api_key = "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"
+google_trans_id = "delta-coast-382412"
 
 
 def place_en_to_ko(location: str) -> str:
@@ -48,7 +51,7 @@ def place_en_to_ko(location: str) -> str:
         return place_dict[location] + ", Seoul"
 
 
-def translator(text: str, task: str, project_id="delta-coast-382412") -> str:
+def translator(text: str, task: str, project_id=google_trans_id) -> str:
     client = translate.TranslationServiceClient()
     location = "us-central1"
 
@@ -101,7 +104,7 @@ def translator_chatgpt(text: str, task: str) -> str:
     
     You should not translate the following words: ACTIVITY, "activity_name", "start_time", "end_time", "description", "budget".
     
-    Begin!: 
+    Do not generate both before and after translation results. Begin!: 
     """
 
     response = openai.ChatCompletion.create(
@@ -185,13 +188,23 @@ def postprocessing(result: str) -> str:
         ACTIVITY
         1. "Breakfast at Paul Bassett"
 
+    [Exception 1-5] There is one ACTIVITY
+        ACTIVITY
+
+        "activity_name": "Seonjeongneung Park",
+        "start_time": "2023-04-09T11:00:00",
+        "end_time": "2023-04-09T13:00:00",
+        "description": "A historic park featuring the tombs of two Joseon Dynasty kings and their queens.",
+        "budget": "0"
+
+        "activity_name": "Starfield COEX Mall",
+
 
     [Exception 2] UNINTENDED OUTPUT:
         "budget": "39000"
 
         Total budget: 101000 Won <- THIS
     """
-
     # exception: 1-4
     activity_findall = re.compile(r'\d\. .*').findall(result)
 
@@ -226,14 +239,18 @@ def postprocessing(result: str) -> str:
     if exception_pattern_1.match(result):
         result = re.sub('\d\. ' + '[a-zA-Z | *]*', 'ACTIVITY', result)
 
+    # exception: 1-5
+    if result.count('ACTIVITY') == 1:
+        result = result.replace("\"activity_name\"", "ACTIVITY\n\"activity_name\"")
+
     if "ACTIVITY\n\nACTIVITY" in result:
         result = result.replace("ACTIVITY\n\nACTIVITY", "ACTIVITY")
 
     if "ACTIVITY\nACTIVITY" in result:
         result = result.replace("ACTIVITY\nACTIVITY", "ACTIVITY")
 
-    if "\n\nACTIVITY" in result:
-        result = result.replace("\n\nACTIVITY", "\nACTIVITY")
+    if "\n\n\nACTIVITY" in result:
+        result = result.replace("\n\n\nACTIVITY", "\n\nACTIVITY")
 
     result = result.replace("- ", "")
 
@@ -431,7 +448,7 @@ def generate_route(meeting_time: str,
 class LOCO:
     def __init__(self):
         print("Initializing LOCO")
-        init()
+        # init()
 
     def inference(self,
                   meeting_time: str,
@@ -478,18 +495,15 @@ class LOCO:
         # e.g., ACTIVITY 1: OR ACTIVITY1: OR ACTIVITY: OR ACTIVITY : -> ACTIVITY
         result = re.sub(r'ACTIVITY' + '[0-9| ]*:', 'ACTIVITY', result)
 
+        # e.g., 1. ACTIVITY -> ACTIVITY
+        result = re.sub(r'\d\. ACTIVITY', 'ACTIVITY', result)
+
         # remove (SOMETHING)
         result = re.sub(re.compile(r'\([^)]*\) *'), "", result)
 
         # remove #
         # e.g., "budget": "0" # free admission -> "budget": "0"
         result = re.sub(re.compile(r'# *.*'), "", result)
-
-        # remove . , -gu, -dong, and high-quality (json issue)
-        result = result.replace(".", "")
-        result = result.replace("high-quality", "high quality")
-        result = result.replace("-gu", " gu")
-        result = result.replace("-dong", " dong")
 
         print(result)
         print("---------------------------------------------------")
@@ -498,15 +512,20 @@ class LOCO:
         parsed_result = result.replace("\n\n", "").replace("\n", "").split("ACTIVITY")[1:]
 
         # remove verb from activity, translate en to ko, and json formatting
-        parsed_result = [json.loads("{" + translator(remove_verb(p), task='en-ko') + "}") for p in parsed_result]
-        # parsed_result = [json.loads("{" + p.replace("Lunch at ", "").replace("Dinner at ", "") + "}") for p in parsed_result]
+        parsed_result = [json.loads("{" + remove_verb(p) + "}") for p in parsed_result]
 
-        # budget; str to int
+        for r in parsed_result:
+            print(r)
+
+        print("-------------------------------------------------------")
+
         for idx in range(len(parsed_result)):
+            parsed_result[idx]["activity_name"] = translator(parsed_result[idx]["activity_name"], task='en-ko')
+            parsed_result[idx]["description"] = translator_chatgpt(parsed_result[idx]["description"], task='en-ko')
+
             try:
                 parsed_result[idx]["budget"] = int(parsed_result[idx]["budget"])
             except:
                 parsed_result[idx]["budget"] = 0
 
         return parsed_result
-
