@@ -431,7 +431,7 @@ def generate_route(meeting_time: str,
 class LOCO:
     def __init__(self):
         print("Initializing LOCO")
-        # init()
+        init()
 
     def inference(self,
                   meeting_time: str,
