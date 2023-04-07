@@ -4,7 +4,6 @@ import json
 from typing import List, Dict
 import openai
 from google.cloud import translate
-from flask import jsonify
 
 # API Keys
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "assets/b7f9.json"
@@ -205,6 +204,9 @@ def postprocessing(result: str) -> str:
 
         Total budget: 101000 Won <- THIS
     """
+    # remove multiple spaces
+    result = re.sub('  +', '', result)
+
     # exception: 1-4
     activity_findall = re.compile(r'\d\. .*').findall(result)
 
@@ -264,15 +266,30 @@ def postprocessing(result: str) -> str:
         chop_idx_to = len(findall_budget[-1])
         result = result[:chop_idx_from + chop_idx_to]
 
-        return result
-    else: # empty -> no error
-        return result
+    # e.g., ACTIVITY 1 -> ACTIVITY
+    result = re.sub(r'ACTIVITY ' + '[0-9]+', 'ACTIVITY', result)
+
+    # e.g., ACTIVITY 1: OR ACTIVITY1: OR ACTIVITY: OR ACTIVITY : -> ACTIVITY
+    result = re.sub(r'ACTIVITY' + '[0-9| ]*:', 'ACTIVITY', result)
+
+    # e.g., 1. ACTIVITY -> ACTIVITY
+    result = re.sub(r'\d\. ACTIVITY', 'ACTIVITY', result)
+
+    # remove (SOMETHING)
+    result = re.sub(re.compile(r'\([^)]*\) *'), "", result)
+
+    # remove #
+    # e.g., "budget": "0" # free admission -> "budget": "0"
+    result = re.sub(re.compile(r'# *.*'), "", result)
+
+    return result
 
 
 def remove_verb(p: str) -> str:
     p = p.replace("Artistic exploration at ", "")
     p = p.replace("Breakfast at ", "")
     p = p.replace("Brunch at ", "")
+    p = p.replace("Chimaek at ", "")
     p = p.replace("Coffee at ", "")
     p = p.replace("Coffee and Cake at ", "")
     p = p.replace("Coffee and dessert at ", "")
@@ -483,27 +500,9 @@ class LOCO:
 
         print(result)
         print("---------------------------------------------------")
-        # remove multiple spaces
-        result = re.sub('  +', '', result)
 
-        # main postprocessing
+        # postprocessing
         result = postprocessing(result)
-
-        # e.g., ACTIVITY 1 -> ACTIVITY
-        result = re.sub(r'ACTIVITY ' + '[0-9]+', 'ACTIVITY', result)
-
-        # e.g., ACTIVITY 1: OR ACTIVITY1: OR ACTIVITY: OR ACTIVITY : -> ACTIVITY
-        result = re.sub(r'ACTIVITY' + '[0-9| ]*:', 'ACTIVITY', result)
-
-        # e.g., 1. ACTIVITY -> ACTIVITY
-        result = re.sub(r'\d\. ACTIVITY', 'ACTIVITY', result)
-
-        # remove (SOMETHING)
-        result = re.sub(re.compile(r'\([^)]*\) *'), "", result)
-
-        # remove #
-        # e.g., "budget": "0" # free admission -> "budget": "0"
-        result = re.sub(re.compile(r'# *.*'), "", result)
 
         print(result)
         print("---------------------------------------------------")
@@ -519,6 +518,7 @@ class LOCO:
 
         print("-------------------------------------------------------")
 
+        # translation and then budget; str to int
         for idx in range(len(parsed_result)):
             parsed_result[idx]["activity_name"] = translator(parsed_result[idx]["activity_name"], task='en-ko')
             parsed_result[idx]["description"] = translator_chatgpt(parsed_result[idx]["description"], task='en-ko')
