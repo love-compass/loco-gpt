@@ -348,6 +348,7 @@ def remove_verb(p: str) -> str:
     p = p.replace("Virtual Reality Experience at ", "")
     p = p.replace("Walking tour of ", "")
     p = p.replace("Walking tour in ", "")
+    p = p.replace("Walk along ", "")
     p = p.replace("Walk in ", "")
     p = p.replace("Walk around ", "")
 
