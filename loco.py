@@ -281,9 +281,6 @@ def postprocessing(result: str) -> str:
     if "ACTIVITY\n\nACTIVITY" in result:
         result = result.replace("ACTIVITY\n\nACTIVITY", "ACTIVITY\n")
 
-    if "ACTIVITYACTIVITY" in result:
-        result = result.replace("ACTIVITYACTIVITY", "ACTIVITY")
-
     result = result.replace("- ", "")
 
     # exception: 2
@@ -311,6 +308,9 @@ def postprocessing(result: str) -> str:
     # remove #
     # e.g., "budget": "0" # free admission -> "budget": "0"
     result = re.sub(re.compile(r'# *.*'), "", result)
+
+    if "ACTIVITYACTIVITY" in result:
+        result = result.replace("ACTIVITYACTIVITY", "ACTIVITY")
 
     if "ACTIVITY\nACTIVITY" in result:
         result = result.replace("ACTIVITY\nACTIVITY", "ACTIVITY")
