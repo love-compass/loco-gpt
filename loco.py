@@ -329,6 +329,7 @@ def remove_verb(p: str) -> str:
     p = p.replace("Coffee and Cake at ", "")
     p = p.replace("Coffee and dessert at ", "")
     p = p.replace("Coffee break at ", "")
+    p = p.replace("Cycling in ", "")
     p = p.replace("Dinner at ", "")
     p = p.replace("Explore ", "")
     p = p.replace("Go to ", "")
@@ -554,7 +555,7 @@ class LOCO:
         for r in parsed_result:
             print(r)
 
-        print("-------------------------------------------------------")
+        print("---------------------------------------------------")
 
         # translation and then budget; str to int
         for idx in range(len(parsed_result)):
