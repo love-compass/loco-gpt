@@ -219,24 +219,27 @@ def postprocessing(result: str) -> str:
     \"activity_name\""""
     result = result.replace(pattern, "ACTIVITY\n\"activity_name\"")
 
+    # exception: 1-5
+    if result.count('ACTIVITY') == 1:
+        if "1. " in result:
+            pattern = re.compile(r'\d\. .*')
+            findall_num = pattern.findall(result)
+            for f in findall_num:
+                result = re.sub(f, "", result)
+            result = result.replace("\n\"activity_name\"", "ACTIVITY\n\"activity_name\"")
+        else:
+            result = result.replace("\n\"activity_name\"", "ACTIVITY\n\"activity_name\"")
+
     # exception: 3
     exception_pattern_3 = re.compile(r'\n\n.+\n')
     findall_between = exception_pattern_3.findall(result)
 
     if findall_between:
         for f in findall_between:
-            if "\"activity_name\"" in f:
+            if "\"activity_name\"" in f or 'ACTIVITY' in f:
                 continue
             result = result.replace(f, "")
 
-    # exception: 1-5
-    if result.count('ACTIVITY') == 1:
-        if "1. " in result:
-            pattern = re.compile(r'\d\. ')
-            result = re.sub(pattern, "", result)
-            result = result.replace("\"activity_name\"", "ACTIVITY\n\"activity_name\"")
-        else:
-            result = result.replace("\"activity_name\"", "ACTIVITY\n\"activity_name\"")
 
     # exception: 1-4
     activity_findall = re.compile(r'\d\. .*').findall(result)
@@ -395,7 +398,9 @@ def change_route(meeting_time: str,
 
     You should actively recommend names of place that exist in reality, what it actually costs.
 
-    {USER_REQUEST_PROMPT}. You should recommend only one place and don't give me a choice.
+    {USER_REQUEST_PROMPT}. 
+    
+    You should recommend only one place and don't give me a choice.
 
     OUTPUT FORMAT: 
 
