@@ -213,6 +213,7 @@ def postprocessing(result: str) -> str:
     """
     # remove multiple spaces
     result = re.sub('  +', '', result)
+    result = result.replace("- ", "")
 
     pattern = """ACTIVITY
 
@@ -283,8 +284,6 @@ def postprocessing(result: str) -> str:
 
     if "ACTIVITY\n\nACTIVITY" in result:
         result = result.replace("ACTIVITY\n\nACTIVITY", "ACTIVITY\n")
-
-    result = result.replace("- ", "")
 
     # exception: 2
     exception_pattern_2 = re.compile(r"\"budget\": \"[a-zA-Z0-9]*\"")
@@ -568,3 +567,4 @@ class LOCO:
                 parsed_result[idx]["budget"] = 0
 
         return parsed_result
+
