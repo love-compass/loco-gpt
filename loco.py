@@ -122,7 +122,7 @@ def translator_chatgpt(text: str, task: str) -> str:
     return result
 
 
-def init() -> None:
+def init():
     LOCO_PREFIX_RPOMPT = """We are making LOCO, a dating application.
 
     LOCO aims to recommend the best dating route by receiving the Meeting and Parting time, Cost, and Approximate location as input.
