@@ -17,3 +17,5 @@ pip install google-cloud-translate
 ```bash
 python loco.py
 ```
+
+- Demo: https://youtu.be/mE8tgotM3pk
