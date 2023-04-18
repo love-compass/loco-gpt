@@ -7,7 +7,7 @@ from google.cloud import translate
 
 # API Keys
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "assets/b7f9.json"
-openai.api_key = "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"
+openai.api_key = "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"
 google_trans_id = "delta-coast-382412"
 
 
